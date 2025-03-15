@@ -16,7 +16,6 @@ class RegisterService:
         if existing_user:
             raise ConflictError(f"User with name '{data['name']}' already exists")
 
-        # Создание нового пользователя
         new_user = User(
             name=data["name"],
             password=AuthService.hash_password(data["password"]),

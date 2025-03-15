@@ -1,13 +1,10 @@
-import jwt
-import datetime
+import jwt, uuid, ast, datetime
 from flask import current_app, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
-
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.utils.error_handler import UnauthorizedError, BadRequestError
-import uuid, ast
 
 class AuthService:
     @staticmethod
@@ -32,25 +29,24 @@ class AuthService:
             raise UnauthorizedError("Access token is missing")
 
         payload = AuthService.verify_token(access_token)
-        print(f"Payload: {payload}")  # Для отладки
+        print(f"Payload: {payload}")
 
         user_id = payload.get("id")
         if not user_id:
             raise UnauthorizedError("Invalid token: user ID not found")
 
-        # Преобразуем строку с байтами в настоящий формат байтов
         try:
-            if isinstance(user_id, str):  # Если user_id строка
-                # Используем literal_eval, чтобы преобразовать строку в байты
+            if isinstance(user_id, str):
+
                 user_id_bytes = ast.literal_eval(user_id)
-            elif isinstance(user_id, bytes):  # Если это уже байты, просто возвращаем
+            elif isinstance(user_id, bytes):
                 user_id_bytes = user_id
             else:
                 raise UnauthorizedError(f"Invalid user ID format: {user_id}")
         except (ValueError, SyntaxError):
             raise UnauthorizedError(f"Invalid user ID format: {user_id}")
 
-        print(f"User ID (bytes): {user_id_bytes}")  # Для отладки
+        print(f"User ID (bytes): {user_id_bytes}")
         return user_id_bytes
 
     @staticmethod
@@ -172,7 +168,6 @@ class AuthService:
         try:
             _, refresh_token = AuthService.get_tokens_from_cookies()
 
-            # Удаляем токен из БД
             db_token = RefreshToken.query.filter_by(token=refresh_token).first()
             if db_token:
                 db.session.delete(db_token)

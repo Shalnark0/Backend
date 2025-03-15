@@ -1,7 +1,5 @@
 from flask import request, jsonify
 from functools import wraps
-from app.models.product import Product
-from app import db
 from app.utils.error_handler import Error
 
 

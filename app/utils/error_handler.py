@@ -1,6 +1,5 @@
 from flask import jsonify
 
-
 class Error(Exception):
     """Базовый класс для всех пользовательских ошибок"""
     def __init__(self, message="Internal server error", status_code=500):

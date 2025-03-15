@@ -15,8 +15,7 @@ class ProductController:
         data = request.get_json()
         product_id = ProductService.add_product(data)
 
-        # Преобразуем UUID (тип bytes) в строку
-        product_id_str = product_id.hex()  # hex() преобразует байты в строку в шестнадцатеричном формате
+        product_id_str = product_id.hex()
 
         return jsonify({"message": "Product created successfully", "product_id": product_id_str}), 201
 

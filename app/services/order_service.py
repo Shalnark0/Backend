@@ -11,10 +11,10 @@ order_bp = Blueprint('order_bp', __name__)
 class OrderService:
     @staticmethod
     def create_order(data, user_id):
-        # Проверка, что user_id это байты (16 байтов)
-        if isinstance(user_id, str):  # Если user_id — строка UUID
-            user_id_bytes = UUID(user_id).bytes  # Преобразуем в байты
-        elif isinstance(user_id, bytes):  # Если это уже байты, используем их напрямую
+
+        if isinstance(user_id, str):
+            user_id_bytes = UUID(user_id).bytes
+        elif isinstance(user_id, bytes):
             user_id_bytes = user_id
         else:
             raise BadRequestError("Invalid user ID format. Expected string or bytes.")
@@ -33,7 +33,6 @@ class OrderService:
         if product.amount < quantity:
             raise BadRequestError(f"Not enough stock for product '{product_name}'")
 
-        # Сохраняем user_id как байты
         new_order = Order(user_id=user_id_bytes, address=address, status='pending')
         db.session.add(new_order)
         db.session.flush()

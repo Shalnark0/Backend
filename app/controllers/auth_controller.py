@@ -1,6 +1,6 @@
 from flask import jsonify, request
 from app.services.auth_service import AuthService
-from app.services.user_service import UserService  # Для получения пользователя
+from app.services.user_service import UserService
 from app.utils.error_handler import Error
 
 

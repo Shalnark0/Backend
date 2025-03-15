@@ -23,15 +23,13 @@ def create_app():
     app.register_blueprint(auth_routes)
     app.register_blueprint(register_routes)
 
-    # Глобальный обработчик ошибок
     @app.errorhandler(Error)
     def handle_app_error(error):
         return error.to_response()
 
-    # Обработчик для неожиданных ошибок
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):
-        print(f"Unexpected error: {error}")  # Логирование ошибки
+        print(f"Unexpected error: {error}")
         return jsonify({"error": "Internal Server Error"}), 500
 
     return app
