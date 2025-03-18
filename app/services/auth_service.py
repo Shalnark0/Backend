@@ -1,4 +1,6 @@
-import jwt, uuid, ast, datetime
+import jwt
+import datetime
+import uuid
 from flask import current_app, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
@@ -31,23 +33,12 @@ class AuthService:
         payload = AuthService.verify_token(access_token)
         print(f"Payload: {payload}")
 
-        user_id = payload.get("id")
-        if not user_id:
+        user_id_str = payload.get("id")
+        if not user_id_str:
             raise UnauthorizedError("Invalid token: user ID not found")
 
-        try:
-            if isinstance(user_id, str):
-
-                user_id_bytes = ast.literal_eval(user_id)
-            elif isinstance(user_id, bytes):
-                user_id_bytes = user_id
-            else:
-                raise UnauthorizedError(f"Invalid user ID format: {user_id}")
-        except (ValueError, SyntaxError):
-            raise UnauthorizedError(f"Invalid user ID format: {user_id}")
-
-        print(f"User ID (bytes): {user_id_bytes}")
-        return user_id_bytes
+        print(f"User ID (string): {user_id_str}")
+        return user_id_str
 
     @staticmethod
     def hash_password(password: str) -> str:
@@ -67,14 +58,14 @@ class AuthService:
     def generate_tokens(user):
         """Создаёт Access и Refresh токены и сохраняет их в cookies и БД"""
         access_payload = {
-            "id": str(user.id),
+            "id": str(user.id),  # Храним строковый UUID
             "role": user.role,
             "iat": datetime.datetime.utcnow(),
             "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
         }
 
         refresh_payload = {
-            "id": str(user.id),
+            "id": str(user.id),  # Храним строковый UUID
             "iat": datetime.datetime.utcnow(),
             "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)
         }
@@ -90,10 +81,8 @@ class AuthService:
         db.session.commit()
 
         response = jsonify({"message": "Tokens generated successfully"})
-        response.set_cookie("access_token", access_token, httponly=True, secure=True, samesite='Strict',
-                            max_age=30 * 60)
-        response.set_cookie("refresh_token", refresh_token, httponly=True, secure=True, samesite='Strict',
-                            max_age=7 * 24 * 60 * 60)
+        response.set_cookie("access_token", access_token, httponly=True, samesite='Strict', max_age=30 * 60)
+        response.set_cookie("refresh_token", refresh_token, httponly=True, samesite='Strict', max_age=7 * 24 * 60 * 60)
 
         return response
 
@@ -181,4 +170,3 @@ class AuthService:
 
         except Exception as e:
             raise UnauthorizedError(f"Failed to logout: {str(e)}")
-

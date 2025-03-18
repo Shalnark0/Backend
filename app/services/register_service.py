@@ -7,20 +7,27 @@ from app.utils.error_handler import ConflictError, BadRequestError
 class RegisterService:
     @staticmethod
     def register_user(data):
-        """Регистрирует нового пользователя"""
+        """Регистрирует нового пользователя с поддержкой аватара"""
+        name = data.get("name")
+        password = data.get("password")
+        email = data.get("email")
+        avatar = data.get("avatar")
 
-        if not data.get("name") or not data.get("password") or not data.get("email"):
+        if not name or not password or not email:
             raise BadRequestError("All fields are required")
 
-        existing_user = User.query.filter_by(name=data["name"]).first()
+        existing_user = User.query.filter_by(name=name).first()
         if existing_user:
-            raise ConflictError(f"User with name '{data['name']}' already exists")
+            raise ConflictError(f"User with name '{name}' already exists")
+
+        avatar_data = avatar.read() if avatar else None
 
         new_user = User(
-            name=data["name"],
-            password=AuthService.hash_password(data["password"]),
-            email=data["email"],
-            role=data.get("role", "user")
+            name=name,
+            password=AuthService.hash_password(password),
+            email=email,
+            role=data.get("role", "user"),
+            avatar=avatar_data
         )
 
         db.session.add(new_user)
