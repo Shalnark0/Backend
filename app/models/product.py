@@ -1,4 +1,5 @@
 from app import db
+from sqlalchemy import JSON
 import uuid
 
 class Product(db.Model):
@@ -8,6 +9,4 @@ class Product(db.Model):
     name = db.Column(db.String(255), nullable=False)
     price = db.Column(db.Float, nullable=False)
     amount = db.Column(db.Integer, nullable=False)
-    photo1 = db.Column(db.String(255), nullable=True)
-    photo2 = db.Column(db.String(255), nullable=True)
-    photo3 = db.Column(db.String(255), nullable=True)
+    photos = db.Column(JSON, nullable=True, default=list)

@@ -1,20 +1,20 @@
 from flask import Blueprint, request, jsonify
-
-from app import db
-from app.models.favorite import Favorite
-from app.models.product import Product
 from app.services.product_service import ProductService
 from app.services.auth_service import AuthService
 from app.services.favorite_service import FavoriteService
 from app.utils.error_handler import BadRequestError, NotFoundError
 import uuid
 
+UPLOAD_FOLDER = 'app/uploads'
+
 class ProductController:
     @staticmethod
     def add_product():
-        data = request.get_json()
+
+        data = request.form
+        photos = request.files.getlist("photos")
         try:
-            product_id = ProductService.add_product(data)
+            product_id = ProductService.add_product(data, photos)
             return jsonify({"message": "Product created successfully", "product_id": product_id}), 201
         except BadRequestError as e:
             return jsonify({"message": str(e)}), 400
@@ -56,18 +56,8 @@ class ProductController:
     @staticmethod
     def get_favorite_products():
         user_id = AuthService.get_current_user()
-
-        favorites = db.session.query(Product).join(Favorite, Favorite.product_id == Product.id).filter(
-            Favorite.user_id == user_id).all()
-
-        return jsonify([
-            {
-                "id": product.id,
-                "name": product.name,
-                "price": product.price,
-                "amount": product.amount
-            } for product in favorites
-        ]), 200
+        favorite_products = FavoriteService.get_favorite_products(user_id)
+        return jsonify(favorite_products), 200
 
     @staticmethod
     def add_to_favorites():
@@ -91,3 +81,16 @@ class ProductController:
             return jsonify({"message": "Product added to favorites successfully"}), 201
         except Exception as e:
             return jsonify({"message": f"Error adding product to favorites: {str(e)}"}), 400
+
+    @staticmethod
+    def delete_favorite(product_id):
+        user_id = AuthService.get_current_user()
+
+        try:
+            FavoriteService.delete_favorite(user_id, product_id)
+            return jsonify({"message": "Product removed from favorites successfully"}), 200
+        except NotFoundError as e:
+            return jsonify({"message": str(e)}), 404
+        except BadRequestError as e:
+            return jsonify({"message": str(e)}), 400
+

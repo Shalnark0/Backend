@@ -1,12 +1,15 @@
-import logging
+import logging, os
 from app import db
 from app.models.favorite import Favorite
 from app.models.product import Product
 from app.utils.error_handler import BadRequestError, NotFoundError
+from werkzeug.utils import secure_filename
+
+UPLOAD_FOLDER = 'app/uploads'
 
 class ProductService:
     @staticmethod
-    def add_product(data):
+    def add_product(data, photos):
         try:
             name = data.get("name")
             price = data.get("price")
@@ -15,19 +18,33 @@ class ProductService:
             if not name or not isinstance(price, (int, float)) or not isinstance(amount, int):
                 raise BadRequestError("Invalid input data")
 
-            existing_product = Product.query.filter_by(name=name).first()
-            if existing_product:
-                raise BadRequestError(f"Product with name '{name}' already exists")
+            saved_photos = []
+            for photo in photos:
+                if photo.filename == '':
+                    continue
+
+                if not photo.filename.lower().endswith(('png', 'jpg', 'jpeg')):
+                    raise BadRequestError(f"Invalid file format for photo {photo.filename}")
+
+                filename = secure_filename(photo.filename)
+                photo_path = os.path.join(UPLOAD_FOLDER, filename)
+
+                photo.save(photo_path)
+
+                saved_photos.append(photo_path)
 
             new_product = Product(
                 name=name,
                 price=price,
-                amount=amount
+                amount=amount,
+                photos=saved_photos
             )
+
             db.session.add(new_product)
             db.session.commit()
 
             return new_product.id
+
         except Exception as e:
             db.session.rollback()
             logging.error(f"Error creating product: {str(e)}")
@@ -77,7 +94,8 @@ class ProductService:
             "id": product.id,
             "name": product.name,
             "price": product.price,
-            "amount": product.amount
+            "amount": product.amount,
+            "photos": product.photos
         }
 
     @staticmethod

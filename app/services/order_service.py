@@ -7,40 +7,48 @@ from uuid import UUID
 class OrderService:
     @staticmethod
     def create_order(data, user_id):
-
-        if isinstance(user_id, str):
-            user_id_str = user_id
-        else:
+        if not isinstance(user_id, str):
             raise BadRequestError("Invalid user ID format. Expected string.")
 
-        product_name = data.get('product_name')
-        quantity = data.get('quantity')
+        products = data.get('products')
         address = data.get('address')
 
-        if not product_name or not quantity or not address:
-            raise BadRequestError("Product name, quantity, and address are required")
+        if not products or not address:
+            raise BadRequestError("Products and address are required")
 
-        product = Product.query.filter_by(name=product_name).first()
-        if not product:
-            raise NotFoundError(f"Product '{product_name}' not found")
+        total_price = 0
+        order_items = []
 
-        if product.amount < quantity:
-            raise BadRequestError(f"Not enough stock for product '{product_name}'")
+        for item in products:
+            product_id = item.get('product_id')
+            quantity = item.get('quantity')
 
-        new_order = Order(user_id=user_id_str, address=address, total_price=quantity * product.price,
-                            status='pending')
-        db.session.add(new_order)
-        db.session.flush()
+            if not product_id or not quantity:
+                raise BadRequestError("Product ID and quantity are required for each item")
 
-        order_item = OrderItem(
-                order_id=new_order.id,
+            product = Product.query.get(product_id)
+            if not product:
+                raise NotFoundError(f"Product with ID '{product_id}' not found")
+
+            if product.amount < quantity:
+                raise BadRequestError(f"Not enough stock for product '{product.name}'")
+
+            total_price += product.price * quantity
+            product.amount -= quantity
+
+            order_items.append(OrderItem(
                 product_id=product.id,
                 quantity=quantity,
                 price=product.price
-            )
-        db.session.add(order_item)
+            ))
 
-        product.amount -= quantity
+        new_order = Order(user_id=user_id, address=address, total_price=total_price, status='pending')
+        db.session.add(new_order)
+        db.session.flush()
+
+        for item in order_items:
+            item.order_id = new_order.id
+            db.session.add(item)
 
         db.session.commit()
 

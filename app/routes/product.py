@@ -11,4 +11,5 @@ product_routes.route("/delete_product/<string:product_id>", methods=["DELETE"])(
 
 product_routes.route("/add_to_favorites", methods=["POST"])(ProductController.add_to_favorites)
 product_routes.route("/get_favorites", methods=["GET"])(ProductController.get_favorite_products)
+product_routes.route("/delete_favorite/<string:product_id>", methods=["DELETE"])(ProductController.delete_favorite)
 

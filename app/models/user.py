@@ -1,4 +1,5 @@
 from app import db
+from sqlalchemy import JSON
 import uuid
 
 class User(db.Model):
@@ -10,4 +11,4 @@ class User(db.Model):
     email = db.Column(db.String(80), unique=True, nullable=False)
     role = db.Column(db.String(80), default="user")
     is_active = db.Column(db.Boolean, default=True)
-    avatar = db.Column(db.LargeBinary, nullable=True)
+    avatar = db.Column(JSON, nullable=True, default=list)

@@ -1,6 +1,7 @@
 from app import db
 from app.models.favorite import Favorite
-from app.utils.error_handler import ConflictError
+from app.models.product import Product
+from app.utils.error_handler import ConflictError, BadRequestError, NotFoundError
 
 
 class FavoriteService:
@@ -17,3 +18,38 @@ class FavoriteService:
 
         db.session.add(new_favorite)
         db.session.commit()
+
+    @staticmethod
+    def get_favorite_products(user_id):
+        try:
+            favorites = (
+                db.session.query(Product)
+                .join(Favorite, Favorite.product_id == Product.id)
+                .filter(Favorite.user_id == user_id)
+                .all()
+            )
+
+            return [
+                {
+                    "id": product.id,
+                    "name": product.name,
+                    "price": product.price,
+                    "amount": product.amount,
+                }
+                for product in favorites
+            ]
+        except Exception as e:
+            raise BadRequestError(f"Error fetching favorite products: {str(e)}")
+
+    @staticmethod
+    def delete_favorite(user_id, product_id):
+        favorite = Favorite.query.filter_by(user_id=user_id, product_id=product_id).first()
+        if not favorite:
+            raise NotFoundError("Favorite not found")
+
+        try:
+            db.session.delete(favorite)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            raise BadRequestError(f"Error deleting favorite product: {str(e)}")
