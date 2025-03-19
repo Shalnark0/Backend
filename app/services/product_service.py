@@ -2,18 +2,20 @@ import logging, os
 from app import db
 from app.models.favorite import Favorite
 from app.models.product import Product
+from app.services.role_service import role_required
 from app.utils.error_handler import BadRequestError, NotFoundError
 from werkzeug.utils import secure_filename
 
-UPLOAD_FOLDER = 'app/uploads'
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '..', 'uploads')
 
 class ProductService:
     @staticmethod
+    @role_required('admin')
     def add_product(data, photos):
         try:
             name = data.get("name")
-            price = data.get("price")
-            amount = data.get("amount")
+            price = float(data.get("price"))
+            amount = int(data.get("amount"))
 
             if not name or not isinstance(price, (int, float)) or not isinstance(amount, int):
                 raise BadRequestError("Invalid input data")
@@ -27,7 +29,7 @@ class ProductService:
                     raise BadRequestError(f"Invalid file format for photo {photo.filename}")
 
                 filename = secure_filename(photo.filename)
-                photo_path = os.path.join(UPLOAD_FOLDER, filename)
+                photo_path = os.path.join('uploads', filename)
 
                 photo.save(photo_path)
 
@@ -72,7 +74,6 @@ class ProductService:
         product = db.session.get(Product, product_id)
         if not product:
             raise NotFoundError("Product not found").to_response()
-
 
         Favorite.query.filter_by(product_id=product_id).delete()
 

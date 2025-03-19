@@ -5,10 +5,7 @@ from app.utils.error_handler import ConflictError, BadRequestError, NotFoundErro
 import os
 from werkzeug.utils import secure_filename
 
-
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '..', 'uploads')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
 
 class RegisterService:
     @staticmethod
@@ -52,12 +49,13 @@ class RegisterService:
             raise BadRequestError("Only JPEG and PNG images are allowed")
 
         filename = secure_filename(f"{user_id}{file_ext}")
-        avatar_path = os.path.join(UPLOAD_FOLDER, filename)
+
+        avatar_path = os.path.join('uploads', filename)
 
         if not os.path.exists(UPLOAD_FOLDER):
             os.makedirs(UPLOAD_FOLDER)
 
-        avatar.save(avatar_path)
+        avatar.save(os.path.join(UPLOAD_FOLDER, filename))
 
         user = User.query.get(user_id)
         if not user:
