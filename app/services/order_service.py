@@ -7,8 +7,6 @@ from uuid import UUID
 class OrderService:
     @staticmethod
     def create_order(data, user_id):
-        if not isinstance(user_id, str):
-            raise BadRequestError("Invalid user ID format. Expected string.")
 
         products = data.get('products')
         address = data.get('address')

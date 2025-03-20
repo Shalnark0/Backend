@@ -33,12 +33,12 @@ class AuthService:
         payload = AuthService.verify_token(access_token)
         print(f"Payload: {payload}")
 
-        user_id_str = payload.get("id")
-        if not user_id_str:
+        user_id = payload.get("id")
+        if not user_id:
             raise UnauthorizedError("Invalid token: user ID not found")
 
-        print(f"User ID (string): {user_id_str}")
-        return user_id_str
+        print(f"User ID (string): {user_id}")
+        return user_id
 
     @staticmethod
     def hash_password(password: str) -> str:
@@ -58,14 +58,14 @@ class AuthService:
     def generate_tokens(user):
         """Создаёт Access и Refresh токены и сохраняет их в cookies и БД"""
         access_payload = {
-            "id": str(user.id),  # Храним строковый UUID
+            "id": user.id,
             "role": user.role,
             "iat": datetime.datetime.utcnow(),
             "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
         }
 
         refresh_payload = {
-            "id": str(user.id),  # Храним строковый UUID
+            "id": user.id,
             "iat": datetime.datetime.utcnow(),
             "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)
         }
