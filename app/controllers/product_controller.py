@@ -5,17 +5,14 @@ from app.services.favorite_service import FavoriteService
 from app.utils.error_handler import BadRequestError, NotFoundError
 import uuid
 
-UPLOAD_FOLDER = 'app/uploads'
-
 class ProductController:
     @staticmethod
     def add_product():
-
         data = request.form
         photos = request.files.getlist("photos")
         try:
             product_id = ProductService.add_product(data, photos)
-            return jsonify({"message": "Product created successfully", "product_id": product_id}), 201
+            return jsonify({"message": "Product created successfully"}), 201
         except BadRequestError as e:
             return jsonify({"message": str(e)}), 400
 
@@ -48,7 +45,7 @@ class ProductController:
     @staticmethod
     def get_product_by_id(product_id):
         try:
-            product = ProductService.get_product(product_id)
+            product = ProductService.get_product_by_id(product_id)
             return jsonify(product), 200
         except NotFoundError as e:
             return jsonify({"message": str(e)}), 404

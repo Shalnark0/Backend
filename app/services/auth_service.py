@@ -1,12 +1,14 @@
 import jwt
 import datetime
-import uuid
+import secrets
+import hashlib
 from flask import current_app, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from app import db
+from app import db, mail
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.utils.error_handler import UnauthorizedError, BadRequestError
+from flask_mail import Message
 
 class AuthService:
     @staticmethod
@@ -66,6 +68,7 @@ class AuthService:
 
         refresh_payload = {
             "id": user.id,
+            "role": user.role,
             "iat": datetime.datetime.utcnow(),
             "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)
         }
@@ -153,13 +156,23 @@ class AuthService:
 
     @staticmethod
     def logout():
-        """Удаляет Refresh-токен из БД и куков"""
+        """Удаляет Refresh-токен из БД, куков и деактивирует пользователя"""
         try:
             _, refresh_token = AuthService.get_tokens_from_cookies()
 
             db_token = RefreshToken.query.filter_by(token=refresh_token).first()
             if db_token:
                 db.session.delete(db_token)
+                db.session.commit()
+
+            payload = AuthService.verify_token(refresh_token)
+            user_id = payload.get("id")
+            if not user_id:
+                raise UnauthorizedError("User ID not found in token").to_response()
+
+            user = User.query.get(user_id)
+            if user:
+                user.is_active = 0
                 db.session.commit()
 
             response = jsonify({"message": "Logged out successfully"})
@@ -170,3 +183,26 @@ class AuthService:
 
         except Exception as e:
             raise UnauthorizedError(f"Failed to logout: {str(e)}")
+
+    @staticmethod
+    def generate_reset_token(email):
+        """Генерация токена на основе email."""
+        random_bytes = secrets.token_bytes(32)
+        token = hashlib.sha256(f"{email}{random_bytes}".encode()).hexdigest()
+        return token
+
+    @staticmethod
+    def send_reset_password_email(email):
+        """Отправка письма для сброса пароля."""
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            raise ValueError("User not found")
+
+        reset_token = AuthService.generate_reset_token(email)
+        reset_link = f"http://example.com/reset-password?token={reset_token}"
+
+        msg = Message("Password Reset Request", recipients=[email])
+        msg.body = f"Click the link to reset your password: {reset_link}"
+
+        mail.send(msg)
+

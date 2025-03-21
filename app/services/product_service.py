@@ -1,4 +1,4 @@
-import logging, os
+import logging, os, uuid, json
 from app import db
 from app.models.favorite import Favorite
 from app.models.product import Product
@@ -10,7 +10,6 @@ UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '..', 'uploads')
 
 class ProductService:
     @staticmethod
-    @role_required('admin')
     def add_product(data, photos):
         try:
             name = data.get("name")
@@ -20,26 +19,35 @@ class ProductService:
             if not name or not isinstance(price, (int, float)) or not isinstance(amount, int):
                 raise BadRequestError("Invalid input data")
 
-            saved_photos = []
+            if not photos:
+                raise BadRequestError("No photos provided")
+
+            saved_photo_ids = []
             for photo in photos:
+
                 if photo.filename == '':
                     continue
 
+                if not photo.filename.strip():
+                    raise BadRequestError(f"File {photo.filename} has no valid name")
                 if not photo.filename.lower().endswith(('png', 'jpg', 'jpeg')):
                     raise BadRequestError(f"Invalid file format for photo {photo.filename}")
 
-                filename = secure_filename(photo.filename)
-                photo_path = os.path.join('uploads', filename)
+                unique_id = str(uuid.uuid4())[:8]
+                new_filename = f"{unique_id}_{secure_filename(photo.filename)}"
 
+                photo_path = os.path.join(UPLOAD_FOLDER, new_filename)
                 photo.save(photo_path)
 
-                saved_photos.append(photo_path)
+                saved_photo_ids.append(f"{unique_id}_{secure_filename(photo.filename)}")
+            if not saved_photo_ids:
+                raise BadRequestError("No valid photos uploaded")
 
             new_product = Product(
                 name=name,
                 price=price,
                 amount=amount,
-                photos=saved_photos
+                photos=json.dumps(saved_photo_ids, ensure_ascii=False)
             )
 
             db.session.add(new_product)
@@ -54,7 +62,9 @@ class ProductService:
 
     @staticmethod
     def update_product(product_id, data):
+
         product = db.session.get(Product, product_id)
+
         if not product:
             raise NotFoundError("Product not found").to_response()
 
@@ -86,7 +96,7 @@ class ProductService:
             raise BadRequestError(f"Error deleting product: {str(e)}").to_response()
 
     @staticmethod
-    def get_product(product_id):
+    def get_product_by_id(product_id):
         product = db.session.get(Product, product_id)
         if not product:
             raise NotFoundError("Product not found").to_response()
@@ -109,6 +119,7 @@ class ProductService:
                 "id": product.id,
                 "name": product.name,
                 "price": product.price,
-                "amount": product.amount
+                "amount": product.amount,
+                "photos": product.photos
             } for product in products
         ]
